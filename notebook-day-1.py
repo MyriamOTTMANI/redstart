@@ -367,14 +367,14 @@ def _(J, M, forces_cartesian, g, l, np):
     def vector_field(t, s, f, phi):
 
         x, vx, y, vy, theta, omega = s
-   
+
         f_x, f_y = forces_cartesian(f=f, theta=theta, phi=phi)
 
         ax = f_x / M
         ay = -f_y / M - g
 
         theta_dotdot = (l * f * np.sin(phi))/2*J
-    
+
 
         return np.array([
             vx,     # dx/dt
@@ -388,16 +388,11 @@ def _(J, M, forces_cartesian, g, l, np):
     return (vector_field,)
 
 
-@app.cell
-def _():
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
+app._unparsable_cell(
+    """
     _df = mo.sql(
-        f"""
-        mo.md(r\"""
+        f\"\"\"
+        mo.md(r\\\\\"\"\"
         ## 🧩 Simulation
 
         Define a function `redstart_solve` that, given the input parameters:
@@ -422,19 +417,21 @@ def _(mo):
             sol = redstart_solve(t_span, y0, f_phi)
             t = np.linspace(t_span[0], t_span[1], 1000)
             y_t = sol(t)[2]
-            plt.plot(t, y_t, label=r"$y(t)$ (height in meters)")
-            plt.plot(t, l * np.ones_like(t), color="grey", ls="--", label=r"$y=\ell$")
-            plt.title("Free Fall")
-            plt.xlabel("time $t$")
+            plt.plot(t, y_t, label=r\"$y(t)$ (height in meters)\")
+            plt.plot(t, l * np.ones_like(t), color=\"grey\", ls=\"--\", label=r\"$y=\\ell$\")
+            plt.title(\"Free Fall\")
+            plt.xlabel(\"time $t$\")
             plt.grid(True)
             plt.legend()
             return plt.gcf()
         free_fall_example()
         ```
-        \""")
-        """
+        \\\\\"\"\")
+        \"\"\"
     )
-    return
+    """,
+    column=None, disabled=False, hide_code=True, name="_"
+)
 
 
 @app.cell
@@ -459,7 +456,7 @@ def _(np, sci, vector_field):
 
         return ivp.sol
 
-    
+
 
     return (redstart_solve,)
 
@@ -468,9 +465,11 @@ def _(np, sci, vector_field):
 def _(l, np, plt, redstart_solve):
     def free_fall_example():
         t_span = [0.0, 5.0]
-        y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0] # [x, vx, y, vy, theta, omega]
+        y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]  # [x, vx, y, vy, theta, omega]
+
         def f_phi(t, y):
-            return np.array([0.0, 0.0]) # [f, phi]
+            return np.array([0.0, 0.0])  # [f, phi]
+
         sol = redstart_solve(t_span, y0, f_phi)
         t = np.linspace(t_span[0], t_span[1], 1000)
         y_t = sol(t)[2]
@@ -481,8 +480,9 @@ def _(l, np, plt, redstart_solve):
         plt.grid(True)
         plt.legend()
         return plt.gcf()
-    free_fall_example()
 
+
+    free_fall_example()
     return
 
 
@@ -503,6 +503,26 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Dans le cas de chute libre il n'y a que le poids qui agit sur le corps, on obtient donc :
+
+    $$y(t) = y_0 + v_{y,0}t - \frac{1}{2}gt^2$$
+
+    Avec $y_0=10$, $v_{y,0}=0$, $g=1$, on obtient :
+
+    $$y(t)=10-\frac{t^2}{2}$$
+
+    Le centre de masse atteint le niveau du sol du modèle ($y=\ell$) au temps
+
+    $$t_\star = \sqrt{2(10-\ell)}$$
+    $$t_\star = 4 s$$
+    on remarque que dans l'exemple donné dans l'énoncé, on obtient exactement le même résultat
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Controlled Landing
 
     Assume that $x$, $\dot{x}$, $\theta$ and $\dot{\theta}$ are null at $t=0$ and that $y(0)= 10$ and $\dot{y}(0) = - 2$.
@@ -511,6 +531,11 @@ def _(mo):
 
     Simulate the corresponding scenario, display graphically the results and check that your solution works as expected.
     """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
@@ -703,6 +728,56 @@ def _(mo):
 
     4. The "controlled landing" scenario (see above).
     """)
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
     return
 
 
