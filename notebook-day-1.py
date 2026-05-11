@@ -356,6 +356,15 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Nous avons déjà trouvé précédemment (d'après le bilan des forces) les accélerations suivant x et y et (d'après la loi des moments) l'accélération angulaires que nous rassemblons dans le vecteur F.
+    L'espace d'état possède une dimension $n = 6 :$$s = \begin{pmatrix} x \\ v_x \\ y \\ v_y \\ \theta \\ \omega \end{pmatrix} \in \mathbb{R}^6$Le champ de vecteurs $F : \mathbb{R}^{6+2} \to \mathbb{R}^6$ tel que $\dot{s} = F(s, f, \phi)$ est défini par :$F(s, f, \phi) = \begin{pmatrix} v_x \\ \frac{f \sin(\theta+\phi)}{M} \\ v_y \\ \frac{-f \cos(\theta+\phi)}{M} - g \\ \omega \\ \frac{\ell f \sin(\phi)}{2J} \end{pmatrix}$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Simulation
 
     Define a function `redstart_solve` that, given the input parameters:
