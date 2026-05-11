@@ -132,6 +132,7 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     Nous définissons les constantes ( constante de gravité, la masse totale et la longueur entière du booster ) avec les valeurs dans l'énoncé.
+    ![alt](public\image.png)
     """)
     return
 
@@ -371,7 +372,7 @@ def _(J, M, forces_cartesian, g, l, np):
         f_x, f_y = forces_cartesian(f=f, theta=theta, phi=phi)
 
         ax = f_x / M
-        ay = -f_y / M - g
+        ay = f_y / M - g
 
         theta_dotdot = (l * f * np.sin(phi))/2*J
 
@@ -386,52 +387,6 @@ def _(J, M, forces_cartesian, g, l, np):
         ], dtype=float)
 
     return (vector_field,)
-
-
-app._unparsable_cell(
-    """
-    _df = mo.sql(
-        f\"\"\"
-        mo.md(r\\\\\"\"\"
-        ## 🧩 Simulation
-
-        Define a function `redstart_solve` that, given the input parameters:
-
-        - `t_span`: a pair of initial time `t_0` and final time `t_f`,
-        - `y0`: the value of `[x, vx, y, vy, theta, omega]` at `t_0`,
-        - `f_phi`: a function that given the current time `t` and current state value `y`
-             returns the values of the inputs `f` and `phi` in an array.
-
-        returns:
-
-        - `sol`: a function that given a time `t` returns the value of `[x, vx, y, vy, theta, omega]` at time `t` (and that also accepts 1d-arrays of times for multiple state evaluations).
-
-        A typical usage would be:
-
-        ```python
-        def free_fall_example():
-            t_span = [0.0, 5.0]
-            y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0] # [x, vx, y, vy, theta, omega]
-            def f_phi(t, y):
-                return np.array([0.0, 0.0]) # [f, phi]
-            sol = redstart_solve(t_span, y0, f_phi)
-            t = np.linspace(t_span[0], t_span[1], 1000)
-            y_t = sol(t)[2]
-            plt.plot(t, y_t, label=r\"$y(t)$ (height in meters)\")
-            plt.plot(t, l * np.ones_like(t), color=\"grey\", ls=\"--\", label=r\"$y=\\ell$\")
-            plt.title(\"Free Fall\")
-            plt.xlabel(\"time $t$\")
-            plt.grid(True)
-            plt.legend()
-            return plt.gcf()
-        free_fall_example()
-        ```
-        \\\\\"\"\")
-        \"\"\"
-    )
-    """,
-    column=None, disabled=False, hide_code=True, name="_"
-)
 
 
 @app.cell
@@ -534,8 +489,168 @@ def _(mo):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On impose $\phi(t)=0$ pour éviter toute rotation (couple nul), puis on construit un profil vertical $y(t)$ cubique qui respecte exactement les conditions aux bornes. Ensuite on en déduit
+
+    $$f(t)=M\left(\ddot{y}(t)+g\right).$$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On impose une trajectoire verticale **cubique** :
+
+    $$y(t) = a t^3 + b t^2 + c t + d$$
+
+    On veut satisfaire 4 contraintes :
+
+    - $y(0)=10$
+    - $\dot{y}(0)=-2$
+    - $y(t_f)=\ell$
+    - $\dot{y}(t_f)=0$
+
+    avec $t_f=5$.
+
+    #### 1) Ce qu'on connaît déjà
+
+    Comme
+
+    $$\dot{y}(t)=3at^2+2bt+c,$$
+
+    on obtient directement :
+
+    - $d = y(0)=10$
+    - $c = \dot{y}(0)=-2$
+
+    Il reste donc seulement **2 inconnues** : $a$ et $b$.
+
+    #### 2) Équation de position finale
+
+    À $t=t_f$ :
+
+    $$a t_f^3 + b t_f^2 + c t_f + d = \ell$$
+
+    soit
+
+    $$a t_f^3 + b t_f^2 = \ell - c t_f - d.$$
+
+    #### 3) Équation de vitesse finale
+
+    Toujours à $t=t_f$ :
+
+    $$3a t_f^2 + 2b t_f + c = 0$$
+
+    soit
+
+    $$3a t_f^2 + 2b t_f = -c.$$
+
+    #### 4) Mise sous forme matricielle
+
+    On regroupe ces 2 équations linéaires en :
+
+    $$A\begin{bmatrix}a\\b\end{bmatrix}=\mathrm{rhs}$$
+
+    avec
+
+    $$A=\begin{bmatrix}t_f^3 & t_f^2\\3t_f^2 & 2t_f\end{bmatrix},\qquad
+    \mathrm{rhs}=\begin{bmatrix}\ell-c t_f-d\\-c\end{bmatrix}.$$
+    """)
+    return
+
+
 @app.cell
-def _():
+def _(M, g, l, np, plt, redstart_solve):
+    def controlled_landing_example():
+        """
+        Atterrissage contrôlé en imposant une trajectoire verticale cubique.
+
+        On choisit y(t) = a t^3 + b t^2 + c t + d, avec:
+        y(0)=10, y'(0)=-2, y(5)=l, y'(5)=0.
+        """
+        t0, tf = 0.0, 5.0
+        y_init, vy_init = 10.0, -2.0
+
+        # Coefficients c et d fixés par les conditions initiales.
+        c = vy_init
+        d = y_init
+
+        # Résolution de a et b via les conditions finales.
+        # [tf^3 tf^2] [a] = [l - c*tf - d]
+        # [3tf^2 2tf] [b]   [0 - c]
+        A = np.array([[tf**3, tf**2], [3*tf**2, 2*tf]], dtype=float)
+        rhs = np.array([l - c*tf - d, -c], dtype=float)
+        a, b = np.linalg.solve(A, rhs)
+
+        def y_ref(t):
+            return a*t**3 + b*t**2 + c*t + d
+
+        def vy_ref(t):
+            return 3*a*t**2 + 2*b*t + c
+
+        def ay_ref(t):
+            return 6*a*t + 2*b
+
+   
+        def f_phi(t, _s):
+            f = M * (ay_ref(t) + g)
+            return np.array([f, 0.0], dtype=float)
+
+        # État initial complet
+        s0 = np.array([0.0, 0.0, y_init, vy_init, 0.0, 0.0], dtype=float)
+        sol = redstart_solve([t0, tf], s0, f_phi)
+
+        # Évaluation
+        t = np.linspace(t0, tf, 1000)
+        s = sol(t)
+        y_num, vy_num = s[2], s[3]
+        y_target, vy_target = y_ref(t), vy_ref(t)
+        f_cmd = np.array([f_phi(tt, None)[0] for tt in t])
+
+        # Tracés lisibles
+        fig, axes = plt.subplots(1, 3, figsize=(16, 4.6))
+
+        axes[0].plot(t, y_num, lw=2.2, label="y numérique")
+        axes[0].plot(t, y_target, "--", lw=1.8, label="y référence")
+        axes[0].axhline(l, color="gray", ls=":", label="cible y=l")
+        axes[0].set_title("Altitude")
+        axes[0].set_xlabel("t [s]")
+        axes[0].set_ylabel("y [m]")
+        axes[0].grid(alpha=0.3)
+        axes[0].legend()
+
+        axes[1].plot(t, vy_num, lw=2.2, label="vy numérique")
+        axes[1].plot(t, vy_target, "--", lw=1.8, label="vy référence")
+        axes[1].axhline(0.0, color="gray", ls=":")
+        axes[1].set_title("Vitesse verticale")
+        axes[1].set_xlabel("t [s]")
+        axes[1].set_ylabel("vy [m/s]")
+        axes[1].grid(alpha=0.3)
+        axes[1].legend()
+
+        axes[2].plot(t, f_cmd, lw=2.2, color="tab:orange")
+        axes[2].axhline(M*g, color="gray", ls=":", label="Mg")
+        axes[2].set_title("Commande de poussée")
+        axes[2].set_xlabel("t [s]")
+        axes[2].set_ylabel("f [N]")
+        axes[2].grid(alpha=0.3)
+        axes[2].legend()
+
+        plt.suptitle("Atterrissage contrôlé (profil cubique)")
+        plt.tight_layout()
+
+        print("Etat final simulé:")
+        print(f"  y(tf)  = {y_num[-1]:.6f}  (cible: {l:.6f})")
+        print(f"  vy(tf) = {vy_num[-1]:.6f} (cible: 0.000000)")
+        print(f"  theta(tf) = {s[4, -1]:.6f} rad")
+
+        return fig, sol, f_phi
+
+    _, sol_controlled, fphi_controlled = controlled_landing_example()
+    plt.show()
     return
 
 
