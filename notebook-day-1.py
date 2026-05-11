@@ -651,7 +651,7 @@ def _(M, g, l, np, plt, redstart_solve):
 
     _, sol_controlled, fphi_controlled = controlled_landing_example()
     plt.show()
-    return
+    return (fphi_controlled,)
 
 
 @app.cell(hide_code=True)
@@ -732,8 +732,9 @@ def _(mo):
 @app.cell
 def _():
     from IPython.display import SVG, display
+    from IPython.display import HTML
 
-    return SVG, display
+    return HTML, SVG, display
 
 
 @app.cell
@@ -997,11 +998,6 @@ def _():
     return
 
 
-@app.cell
-def _():
-    return
-
-
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -1017,6 +1013,103 @@ def _(mo):
 
     4. The "controlled landing" scenario (see above).
     """)
+    return
+
+
+@app.cell
+def _(
+    HTML,
+    M,
+    booster_anim,
+    display,
+    fphi_controlled,
+    g,
+    l,
+    np,
+    plt,
+    redstart_solve,
+):
+    def simulate_case(name, y0, f_phi, T=5.0):
+        """Simule un scénario et renvoie (t, s, html_anim)."""
+        t_span = [0.0, T]
+        sol = redstart_solve(t_span, y0, f_phi)
+        t = np.linspace(0.0, T, 500)
+        s = sol(t)
+
+        # Fonctions continues pour l'animation
+        def x_fun(tt):
+            return float(sol(tt)[0])
+        def y_fun(tt):
+            return float(sol(tt)[2])
+        def th_fun(tt):
+            return float(sol(tt)[4])
+        def f_fun(tt):
+            return float(f_phi(tt, sol(tt))[0])
+        def phi_fun(tt):
+            return float(f_phi(tt, sol(tt))[1])
+
+        anim_html = booster_anim(x_fun, y_fun, th_fun, f_fun, phi_fun, T=T)
+
+        print(f"{name}")
+        print(f"  y(T)={s[2,-1]:.3f}, vy(T)={s[3,-1]:.3f}, theta(T)={s[4,-1]:.3f} rad")
+        return t, s, anim_html
+
+    # ----------------------------
+    # Définition des 4 scénarios
+    # ----------------------------
+    T = 5.0
+    y0_std = np.array([0.0, 0.0, 10.0, 0.0, 0.0, 0.0], dtype=float)
+
+    # 1) Chute libre
+    fphi_1 = lambda _t, _s: np.array([0.0, 0.0], dtype=float)
+
+    # 2) Vol stationnaire idéal (f = Mg)
+    fphi_2 = lambda _t, _s: np.array([M * g, 0.0], dtype=float)
+
+    # 3) Poussée inclinée constante
+    fphi_3 = lambda _t, _s: np.array([M * g, np.pi / 8.0], dtype=float)
+
+    # 4) Atterrissage contrôlé (fonction calculée plus haut)
+    y0_ctrl = np.array([0.0, 0.0, 10.0, -2.0, 0.0, 0.0], dtype=float)
+    fphi_4 = fphi_controlled
+
+    cases = [
+        ("1) Free fall", y0_std, fphi_1),
+        ("2) Hovering", y0_std, fphi_2),
+        ("3) Tilted thrust", y0_std, fphi_3),
+        ("4) Controlled landing", y0_ctrl, fphi_4),
+    ]
+
+    results = [simulate_case(name, y0, u, T=T) for (name, y0, u) in cases]
+
+    # ----------------------------
+    # Tracés comparatifs lisibles
+    # ----------------------------
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    for ax, (name, _, _), (t, s, _) in zip(axes.flat, cases, results):
+        ax.plot(t, s[2], lw=2.0, label="y(t)")
+        ax.plot(t, s[3], lw=1.7, label="vy(t)")
+        ax.axhline(l, color="gray", ls=":", alpha=0.7)
+        ax.set_title(name)
+        ax.set_xlabel("t [s]")
+        ax.grid(alpha=0.3)
+        ax.legend()
+
+    plt.suptitle("Comparaison des 4 scénarios")
+    plt.tight_layout()
+    plt.show()
+
+    # ----------------------------
+    # Affichage des animations SVG
+    # ----------------------------
+    for (name, _, _), (_, _, anim) in zip(cases, results):
+        display(HTML(f"<h4>{name}</h4>"))
+        display(HTML(anim))
+    return
+
+
+@app.cell
+def _():
     return
 
 
