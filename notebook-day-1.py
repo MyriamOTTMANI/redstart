@@ -672,7 +672,7 @@ def _(mo):
 def _():
     from svg import svg, transform, animate_transform
 
-    return
+    return (svg,)
 
 
 @app.cell(hide_code=True)
@@ -729,6 +729,83 @@ def _(mo):
     return
 
 
+@app.cell
+def _():
+    from IPython.display import SVG, display
+
+    return SVG, display
+
+
+@app.cell
+def _(SVG, display):
+    def world(view_box, *objects):
+        """
+        Construit une scène SVG en coordonnées cartésiennes.
+
+        Paramètres
+        ----------
+        view_box : [x_min, x_max, y_min, y_max]
+        *objects : fragments SVG (str) superposés à la scène
+        """
+        x_min, x_max, y_min, y_max = map(float, view_box)
+        width = x_max - x_min
+        height = y_max - y_min
+
+   
+        svg_parts = [
+            f'<svg viewBox="{x_min} {y_min} {width} {height}" width="520" xmlns="http://www.w3.org/2000/svg">',
+            '  <rect width="100%" height="100%" fill="#f8fbff"/>',
+            '  <g transform="scale(1,-1)">',
+            f'    <rect x="{x_min}" y="0" width="{width}" height="{max(0.0, y_max)}" fill="#b7e3ff"/>',
+            f'    <rect x="{x_min}" y="{y_min}" width="{width}" height="{max(0.0, -y_min)}" fill="#8c6a43"/>',
+            '    <rect x="-1" y="0" width="2" height="0.12" fill="#26a65b" stroke="white" stroke-width="0.03"/>',
+            '    <line x1="0" y1="0" x2="0" y2="0.3" stroke="white" stroke-width="0.03"/>',
+        ]
+
+   
+        for obj in objects:
+            svg_parts.append(str(obj))
+
+        svg_parts += ["  </g>", "</svg>"]
+        return "\n".join(svg_parts)
+
+
+
+    display(SVG(data=world([-3, 3, -1, 4])))
+    return (world,)
+
+
+@app.cell
+def _(mo, svg, world):
+    mo.hstack(
+        [
+            # Display an empty world
+            mo.Html(
+                world([-3, 3, -2, 4])
+            ),
+            # Display a world with a black square on top of the landing pad
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    svg.rect(x=-1, y=0, width=2, height=2, fill="black"),
+                )
+            ),
+            # Display a world with a red square in the top-left corner of the view box
+            # and a blue square on the top-right corner of the view box.
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    svg.rect(x=-3, y=2, width=2, height=2, fill="red"),
+                    svg.rect(x=1, y=2, width=2, height=2, fill="blue"),
+                )
+            )
+        ],
+        justify="space-around"
+    )
+
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -781,6 +858,93 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, g, l, np):
+    def booster(x, y, theta, f, phi):
+        """
+        Retourne un fragment SVG représentant le booster + la flamme.
+
+        La longueur de flamme suit la règle demandée:
+        - flame = l/2 lorsque f = M*g
+        """
+        # Géométrie simple du booster
+        body_length = 2.0 * l
+        body_width = 0.22
+
+        # Échelle de flamme (bornée pour garder une visualisation stable)
+        flame_len = 0.5 * l * (f / (M * g)) if M * g > 0 else 0.0
+        flame_len = float(np.clip(flame_len, 0.0, 2.5 * l))
+
+        # Transformations: translation puis rotation (SVG en degrés)
+        theta_deg = float(theta * 180.0 / np.pi)
+        phi_deg = float(phi * 180.0 / np.pi)
+
+        parts = [
+            f'<g transform="translate({x:.6f},{y:.6f}) rotate({-theta_deg:.6f})">'
+        ]
+
+        # Corps (centré au centre de masse)
+        parts.append(
+            f'<rect x="{-body_width / 2:.6f}" y="{-body_length / 2:.6f}" width="{body_width:.6f}" height="{body_length:.6f}" '
+            'fill="#4b5563" stroke="#111827" stroke-width="0.03"/>'
+        )
+
+        # Nez du booster
+        parts.append(
+            f'<polygon points="0,{body_length / 2:.6f} {body_width / 2:.6f},{body_length / 2 - 0.2:.6f} {-body_width / 2:.6f},{body_length / 2 - 0.2:.6f}" '
+            'fill="#d97706"/>'
+        )
+
+        # Flamme à la base (y = -body_length/2), orientée avec phi
+        if f > 1e-9:
+            parts.append(
+                f'<g transform="translate(0,{-body_length / 2:.6f}) rotate({phi_deg:.6f})">'
+            )
+            parts.append(
+                f'<polygon points="0,0 {body_width * 0.35:.6f},{-flame_len:.6f} {-body_width * 0.35:.6f},{-flame_len:.6f}" '
+                'fill="#fb923c" opacity="0.85"/>'
+            )
+            parts.append(
+                f'<polygon points="0,0 {body_width * 0.18:.6f},{-0.72 * flame_len:.6f} {-body_width * 0.18:.6f},{-0.72 * flame_len:.6f}" '
+                'fill="#fde047" opacity="0.95"/>'
+            )
+            parts.append("</g>")
+
+        parts.append("</g>")
+        return "\n".join(parts)
+
+    return (booster,)
+
+
+@app.cell
+def _(M, booster, g, l, mo, np, world):
+    mo.hstack(
+        [
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    booster(0, l/2, 0, 0, 0),
+                )
+            ),
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    booster(0, l, 0, M * g, 0),
+                )
+            ),
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    booster(-l/2, l, np.pi / 4, 2 * M * g, np.pi / 2),
+                )
+            ),
+        ],
+        justify="space-around",
+    )
+
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -828,6 +992,16 @@ def _(mo):
     return
 
 
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -843,56 +1017,6 @@ def _(mo):
 
     4. The "controlled landing" scenario (see above).
     """)
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
     return
 
 
