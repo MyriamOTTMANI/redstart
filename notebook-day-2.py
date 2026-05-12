@@ -1087,6 +1087,144 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    À un équilibre, toutes les dérivées temporelles sont nulles :
+
+    \[
+    \dot{s} = 0
+    \]
+
+    Le vecteur d’état est :
+
+    \[
+    s = (x, v_x, y, v_y, \theta, \omega)
+    \]
+
+    ce qui donne les conditions suivantes :
+
+    \[
+    \dot{s} = F(s,f,\phi)
+    =
+    \begin{pmatrix}
+    v_x \\
+    \dfrac{f\sin(\theta+\phi)}{M} \\
+    v_y \\
+    \dfrac{f\cos(\theta+\phi)}{M} - g \\
+    \omega \\
+    \dfrac{\ell f \sin\phi}{2J}
+    \end{pmatrix}
+    =
+    \mathbf{0}
+    \]
+
+
+    \[
+    v_x = 0,
+    \qquad
+    v_y = 0,
+    \qquad
+    \omega = 0
+    \]
+
+    Comme :
+
+    \[
+    f > 0
+    \qquad \text{et} \qquad
+    \ell > 0
+    \]
+
+    on obtient :
+
+    \[
+    \frac{\ell f \sin\phi}{2J} = 0
+    \]
+
+    d’où :
+
+    \[
+    \sin\phi = 0
+    \]
+
+    et donc :
+
+    \[
+    \boxed{\phi = 0}
+    \]
+
+    (unique solution avec \( |\phi| < \pi/2 \)).
+
+
+    on absence d’accélération horizontale
+
+    Avec \( |\theta + \phi| < \pi \) :
+
+    \[
+    f\sin(\theta + \phi) = 0
+    \]
+
+    Comme \( f > 0 \), on a :
+
+    \[
+    \theta + \phi = 0
+    \]
+
+    et puisque \( \phi = 0 \) :
+
+    \[
+    \boxed{\theta = 0}
+    \]
+
+    ---
+
+    Il y a absence d’accélération verticale
+
+    Avec :
+
+    \[
+    \theta = \phi = 0
+    \]
+
+    on obtient :
+
+    \[
+    \frac{f\cos(0)}{M} - g = 0
+    \]
+
+    Comme \( \cos(0)=1 \) :
+
+    \[
+    \frac{f}{M} = g
+    \]
+
+    donc :
+
+    \[
+    \boxed{f = Mg}
+    \]
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+ 
+    """)
+    return
+
+
+@app.cell
+def _(M, g):
+    phi_eq   = 0.0        
+    theta_eq = 0.0     
+    f_eq     = M * g      # poussée = poids
+
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Linearized Model
 
     Introduce the error variables $\Delta x$, $\Delta y$, $\Delta \theta$, and $\Delta f$ and $\Delta \phi$ of the state and input values with respect to the generic equilibrium configuration.
