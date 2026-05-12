@@ -1853,7 +1853,7 @@ def _(A_lat, B_lat, la, np, plot_controller):
 
     # Choix des matrices de pondération
     # Q pénalise : [Delta_x, Delta_vx, Delta_theta, Delta_omega]
-    Q = np.diag([1.0, 0.1, 10.0, 1.0])  # On pénalise surtout theta
+    Q = np.diag([0.5, 0.1, 2.0, 0.0])  # On pénalise surtout theta
     R = np.array([[1.0]])                 # Pénalisation de la commande phi
 
     K_oc, P = lqr(A_lat, B_lat, Q, R)
@@ -1877,7 +1877,7 @@ def _(A_lat, B_lat, la, np, plot_controller):
 def _(A_lat, B_lat, la, lqr, np, plot_controller):
     # Exploration de différentes pondérations LQR
     print("=== LQR avec pondération plus agressive sur x ===")
-    Q2 = np.diag([-5.0, 0.5, 10.0, 2.0])
+    Q2 = np.diag([5.0, 0.5, 10.0, 2.0])
     R2 = np.array([[0.5]])
     K_oc2, _ = lqr(A_lat, B_lat, Q2, R2)
     print(f"K_oc2 = {K_oc2}")
@@ -2035,7 +2035,7 @@ def _(A_lat, B_lat, K_manual, K_oc2, K_pp, la, np):
         print(f"\n{name}:")
         print(f"  K = {np.round(K, 4)}")
         print(f"  Valeurs propres BF : {np.round(eigs, 3)}")
-        print(f"  Stable : {'✅' if stable1 else '❌'}")
+        print(f"  Stable : {'stable' if stable1 else 'pas stable'}")
         t_conv = -1 / np.max(np.real(eigs[np.real(eigs) < 0])) * 5  # ~5 constantes de temps
         print(f"  Temps de convergence estimé : ~{t_conv:.1f} s")
     return
