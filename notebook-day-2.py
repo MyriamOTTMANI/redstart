@@ -1087,120 +1087,47 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    À un équilibre, toutes les dérivées temporelles sont nulles :
+    À un équilibre, la dérivée temporelle du vecteur d'état est nulle :
 
-    \[
-    \dot{s} = 0
-    \]
+    $$\dot{s} = F(s, f, \phi) = \mathbf{0}$$
 
-    Le vecteur d’état est :
+    Le champ de vecteurs établi précédemment est :
 
-    \[
-    s = (x, v_x, y, v_y, \theta, \omega)
-    \]
+    $$F(s, f, \phi) = \begin{pmatrix} v_x \\ -\dfrac{f}{M}\sin(\theta+\phi) \\ v_y \\ +\dfrac{f}{M}\cos(\theta+\phi) - g \\ \omega \\ -\dfrac{f\ell}{2J}\sin\phi \end{pmatrix} = \mathbf{0}$$
 
-    ce qui donne les conditions suivantes :
+    **Conditions cinématiques.** Les composantes 1, 3 et 5 donnent directement :
 
-    \[
-    \dot{s} = F(s,f,\phi)
-    =
-    \begin{pmatrix}
-    v_x \\
-    \dfrac{f\sin(\theta+\phi)}{M} \\
-    v_y \\
-    \dfrac{f\cos(\theta+\phi)}{M} - g \\
-    \omega \\
-    \dfrac{\ell f \sin\phi}{2J}
-    \end{pmatrix}
-    =
-    \mathbf{0}
-    \]
+    $$v_x = 0, \qquad v_y = 0, \qquad \omega = 0$$
 
+    Le booster est donc au repos : aucune vitesse de translation ni de rotation.
 
-    \[
-    v_x = 0,
-    \qquad
-    v_y = 0,
-    \qquad
-    \omega = 0
-    \]
+    **Angle du réacteur.** La composante 6, avec $f > 0$ et $\ell > 0$, donne :
 
-    Comme :
+    $$-\frac{f\ell}{2J}\sin\phi = 0 \implies \sin\phi = 0$$
 
-    \[
-    f > 0
-    \qquad \text{et} \qquad
-    \ell > 0
-    \]
+    La contrainte $|\phi| < \pi/2$ assure que la seule solution est :
 
-    on obtient :
+    $$\phi^* = 0$$
 
-    \[
-    \frac{\ell f \sin\phi}{2J} = 0
-    \]
+    **Inclinaison du booster.** La composante 2, avec $f > 0$, donne :
 
-    d’où :
+    $$-\frac{f}{M}\sin(\theta + \phi) = 0 \implies \sin(\theta + \phi) = 0$$
 
-    \[
-    \sin\phi = 0
-    \]
+    Puisque $\phi^* = 0$ est déjà établi, on a $|\theta + \phi| = |\theta| < \pi/2$, et $\sin$ ne s'annule sur cet intervalle strict qu'en zéro, donc :
 
-    et donc :
+    $$\theta^* = 0$$
 
-    \[
-    \boxed{\phi = 0}
-    \]
+    **Amplitude de la poussée.** La composante 4, avec $\theta^* = \phi^* = 0$ :
 
-    (unique solution avec \( |\phi| < \pi/2 \)).
+    $$\frac{f}{M}\cos(0) - g = 0 \implies f^* = Mg$$
 
+    La poussée compense exactement le poids du booster.
 
-    on absence d’accélération horizontale
+    **Conclusion.** L'ensemble des équilibres est la famille :
 
-    Avec \( |\theta + \phi| < \pi \) :
+    $$s^* = (x^*,\ 0,\ y^*,\ 0,\ 0,\ 0) \in \mathbb{R}^6, \qquad f^* = Mg, \qquad \phi^* = 0$$
 
-    \[
-    f\sin(\theta + \phi) = 0
-    \]
-
-    Comme \( f > 0 \), on a :
-
-    \[
-    \theta + \phi = 0
-    \]
-
-    et puisque \( \phi = 0 \) :
-
-    \[
-    \boxed{\theta = 0}
-    \]
-
-    ---
-
-    Il y a absence d’accélération verticale
-
-    Avec :
-
-    \[
-    \theta = \phi = 0
-    \]
-
-    on obtient :
-
-    \[
-    \frac{f\cos(0)}{M} - g = 0
-    \]
-
-    Comme \( \cos(0)=1 \) :
-
-    \[
-    \frac{f}{M} = g
-    \]
-
-    donc :
-
-    \[
-    \boxed{f = Mg}
-    \]
+    pour tout $(x^*, y^*) \in \mathbb{R}^2$. La position du centre de masse est libre, mais la vitesse, l'inclinaison et la vitesse angulaire sont toutes nulles : le booster est suspendu verticalement, immobile, avec une poussée verticale qui contrebalance exactement son poids.
     """)
     return
 
@@ -1654,6 +1581,28 @@ def _(mo):
     Explain your thought process, show your iterative guesses and simulations!
 
     Is your final closed-loop model asymptotically stable?
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Avec $K=[0,0,k_3,k_4]$, la dynamique en boucle fermée est $\dot{s} = (A_{lat} - B_{lat}K)\,s$.
+
+    L'équation de $\theta$ se réduit à :
+    $$\ddot{\theta} = -\frac{Mg\ell}{2J}\,\Delta\phi = +\frac{Mg\ell}{2J}(k_3\Delta\theta + k_4\Delta\omega)$$
+
+    c'est-à-dire :
+    $$\ddot{\theta} - \frac{Mg\ell}{2J}k_4\,\dot{\theta} - \frac{Mg\ell}{2J}k_3\,\theta = 0$$
+
+    Pour la stabilité on veut **les deux coefficients négatifs** :
+    - $k_3 < 0$ (rappel vers $\theta=0$, terme proportionnel),
+    - $k_4 < 0$ (amortissement, terme dérivé).
+
+    On fixe $\frac{Mg\ell}{2J} = \frac{1\cdot1\cdot2}{2\cdot1/3}=3$.
+
+    On cherche des pôles pour $s^2 - 3k_4 s - 3k_3 = 0$ avec $Re<0$. On itère.
     """)
     return
 
