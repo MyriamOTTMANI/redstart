@@ -1503,7 +1503,7 @@ def _(A, B, controllability_matrix, np):
         print("Le système LATÉRAL RÉDUIT est CONTRÔLABLE")
     else:
         print("Non contrôlable")
-    return
+    return (A_lat,)
 
 
 @app.cell(hide_code=True)
@@ -1524,6 +1524,95 @@ def _(mo):
     - $\phi(t)=0$ at all times.
 
     What do you see? How do you explain it?
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+ 
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## 🧩 Linear Model in Free Fall
+
+    On applique le modèle linéarisé au sous-système latéral $(\Delta x,\, \Delta\dot{x},\, \Delta\theta,\, \Delta\dot{\theta})$ avec $\phi(t) = 0$.
+
+    ### Mise en équation
+
+    Les équations linéarisées du bloc latéral (avec $\Delta\phi = 0$) sont :
+
+    $$\Delta\ddot{x} = -g\,\Delta\theta, \qquad \Delta\ddot{\theta} = 0$$
+     Sous forme matricielle :
+
+
+    Nous avons prévu à la fois une résolution analytique et numérique :
+    La résolution analytique :
+
+    **Angle $\theta(t)$** — la quatrième ligne de $A_{lat}$ est nulle, donc $\ddot{\theta} = 0$. Avec $\dot{\theta}(0) = 0$ :
+
+    $$\theta(t) = \theta(0) = \frac{\pi}{4} \quad \text{(constante pour tout } t\text{)}$$
+
+    Sans action sur $\phi$, aucun couple n'est créé : l'angle reste figé à sa valeur initiale.
+
+    **Position $x(t)$** — on substitue $\theta(t) = \pi/4$ :
+
+    $$\ddot{x} = -g\cdot\frac{\pi}{4} = \text{constante}$$
+
+    En intégrant deux fois avec $x(0) = 0$ et $\dot{x}(0) = 0$ :
+
+    $$\boxed{x(t) = -\frac{g\pi}{8}\,t^2}$$
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, np, plt):
+    from scipy.integrate import solve_ivp
+
+    ds0_lat = np.array([0.0, 0.0, np.pi/4, 0.0])  # [Delta_x, Delta_vx, Delta_theta, Delta_omega]
+    t_span  = [0.0, 20.0]
+    t_eval  = np.linspace(0, 20, 2000)
+
+    def lin_open_loop(t, s):
+        return A_lat @ s   
+
+    sol_ol = solve_ivp(lin_open_loop, t_span, ds0_lat, t_eval=t_eval)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+    axes[0].plot(sol_ol.t, sol_ol.y[0])
+    axes[0].set_title(r"$\Delta x(t)$ — dérive parabolique")
+    axes[0].set_xlabel("t (s)"); axes[0].set_ylabel(r"$\Delta x$ (m)"); axes[0].grid(True)
+
+    axes[1].plot(sol_ol.t, np.degrees(sol_ol.y[2]), color='orange')
+    axes[1].set_title(r"$\Delta\theta(t)$ — reste constant ($\phi=0$)")
+    axes[1].set_xlabel("t (s)"); axes[1].set_ylabel(r"$\Delta\theta$ (degrés)"); axes[1].grid(True)
+
+    plt.suptitle("Boucle ouverte — système latéral, $\\phi=0$", fontsize=12)
+    plt.tight_layout()
+    plt.show()
+
+    print("Observation : theta reste constant (pas de couple sans phi),")
+    print("              mais x dérive car l'inclinaison initiale crée une accélération horizontale.")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Les résultats sont similaires pour les deux résolutions :
+    Observations et interprétation
+
+    - $\theta(t)$ est **constant** : sans commande $\phi$, l'angle ne peut pas être corrigé.
+    - $x(t)$ présente une **dérive parabolique** vers la gauche, conséquence directe de l'inclinaison permanente.
+
+    Ce résultat confirme l'instabilité de l'équilibre : une inclinaison initiale $\theta(0) \neq 0$, même sans perturbation supplémentaire, suffit à provoquer une dérive horizontale illimitée. Un contrôleur actif sur $\phi$ est donc indispensable pour stabiliser le booster.
     """)
     return
 
