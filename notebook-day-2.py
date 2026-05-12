@@ -1673,7 +1673,7 @@ def _(A_lat, B_lat, la, np, plt, scipy):
 
     # --- Tentative 1 : gains initiaux faibles ---
     print("=== Tentative 1 : k_theta=0.5, k_omega=1.0 ===")
-    K1 = np.array([[0, 0, 0.5, 1.0]])
+    K1 = np.array([[0, 0, -0.5, -1.0]])
     eigs1 = plot_controller(K1, label="Tentative 1")
     return (plot_controller,)
 
@@ -1682,7 +1682,7 @@ def _(A_lat, B_lat, la, np, plt, scipy):
 def _(np, plot_controller):
 
     print("=== Tentative 2 : k_theta=1.0, k_omega=2.0 ===")
-    K2 = np.array([[0, 0, 1.0, 2.0]])
+    K2 = np.array([[0, 0, -1.0, -2.0]])
     eigs2 = plot_controller(K2, label="Tentative 2")
     return
 
@@ -1693,7 +1693,7 @@ def _(A_lat, B_lat, la, np, plot_controller):
     # On cherche une convergence en ~20s -> partie réelle des VPs ~ -0.2
     # Avec k_theta ~ 0.2/g*J et k_omega equilibrant
     print("=== Tentative 3 (finale) : k_theta=0.3, k_omega=1.5 ===")
-    K_manual = np.array([[0, 0, 0.3, 1.5]])
+    K_manual = np.array([[0, 0, -0.3, -1.5]])
     eigs_manual = plot_controller(K_manual, label="Manuel final", t_end=30)
 
     print("\n--- Résumé du réglage manuel ---")
@@ -1703,7 +1703,7 @@ def _(A_lat, B_lat, la, np, plot_controller):
     print(f"Valeurs propres en BF : {np.round(eigs_final, 4)}")
     stable = np.all(np.real(eigs_final) < 0)
     print(f"Système asymptotiquement stable : {'OUI' if stable else 'NON'}")
-    return
+    return (K_manual,)
 
 
 @app.cell(hide_code=True)
@@ -1714,6 +1714,8 @@ def _(mo):
     - Un gain $k_\theta$ trop fort cause des $\Delta\phi$ trop grands (saturation du réacteur).
     - Le système en boucle fermée est asymptotiquement stable si toutes les valeurs propres de $A_{cl} = A_{lat} - B_{lat}K$ ont une partie réelle strictement négative.
     - La dérive en $x$ est tolérée pour cette question (on ne corrige que $\theta$).
+
+    La tentative 1 semble être la plus satisfaisante jusqu’à présent : le système converge plus rapidement vers l’équilibre tout en présentant moins d’oscillations. Le compromis entre rapidité et amortissement paraît donc mieux équilibré, ce qui indique un choix de gains plus adapté pour stabiliser le propulseur.
     """)
     return
 
@@ -1776,10 +1778,10 @@ def _(A_lat, B_lat, la, np, plot_controller):
     from scipy.signal import place_poles
 
     # Choix des pôles désirés en boucle fermée
-    # On veut convergence en ~20s -> Re(lambda) ~ -0.2 à -0.3
+    # On veut convergence en ~20s -> Re(lambda) 
     # On choisit 2 paires de complexes conjugués légèrement amortis
-    desired_poles = np.array([-0.3 + 0.2j, -0.3 - 0.2j,
-                               -0.2 + 0.1j, -0.2 - 0.1j])
+    desired_poles = np.array([-0.3 + 0.025j, -0.3 - 0.025j,
+                               -0.2 + 0.05j, -0.2 - 0.05j])
 
     # Placement de pôles
     result_pp = place_poles(A_lat, B_lat, desired_poles)
@@ -1797,6 +1799,11 @@ def _(A_lat, B_lat, la, np, plot_controller):
     # Simulation et tracé
     print("\n=== Simulation avec placement de pôles ===")
     plot_controller(K_pp, label="Placement de pôles", t_end=30)
+    return (K_pp,)
+
+
+@app.cell
+def _():
     return
 
 
@@ -1815,10 +1822,227 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Question :** Utiliser le contrôle optimal pour trouver un gain $K_{oc}$ satisfaisant les mêmes exigences que le placement de pôles.
+
+    ### Démarche
+
+    Le **régulateur linéaire quadratique (LQR)** minimise le critère :
+
+    $$J = \int_0^\infty \left(\Delta s^T Q\, \Delta s + \Delta\phi^T R\, \Delta\phi\right) dt$$
+
+    - **$Q$** pénalise les états : grands coefficients = convergence rapide de l'état
+    - **$R$** pénalise les entrées : grands coefficients = commandes douces
+
+    La solution optimale est $\Delta\phi = -K_{oc}\,\Delta s$ où $K_{oc} = R^{-1}B^T P$, avec $P$ solution de l'équation algébrique de Riccati.
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, B_lat, la, np, plot_controller):
+    # Q19 — Contrôle Optimal LQR
+    from scipy.linalg import solve_continuous_are
+
+    def lqr(A, B, Q, R):
+        """Calcule le gain LQR optimal."""
+        # Résolution de l'équation algébrique de Riccati continue
+        P = solve_continuous_are(A, B, Q, R)
+        # Gain optimal
+        K_lqr = np.linalg.inv(R) @ B.T @ P
+        return K_lqr, P
+
+    # Choix des matrices de pondération
+    # Q pénalise : [Delta_x, Delta_vx, Delta_theta, Delta_omega]
+    Q = np.diag([1.0, 0.1, 10.0, 1.0])  # On pénalise surtout theta
+    R = np.array([[1.0]])                 # Pénalisation de la commande phi
+
+    K_oc, P = lqr(A_lat, B_lat, Q, R)
+
+    print("Gain LQR optimal K_oc :")
+    print(K_oc)
+
+    A_cl_oc = A_lat - B_lat @ K_oc
+    eigs_oc = la.eigvals(A_cl_oc)
+    print(f"\nValeurs propres en BF (LQR) : {np.round(eigs_oc, 4)}")
+    stable_oc = np.all(np.real(eigs_oc) < 0)
+    print(f"Système asymptotiquement stable : {'OUI' if stable_oc else 'NON'}")
+
+    # Simulation
+    print("\n=== Simulation avec LQR ===")
+    plot_controller(K_oc, label="LQR Optimal", t_end=30)
+    return (lqr,)
+
+
+@app.cell
+def _(A_lat, B_lat, la, lqr, np, plot_controller):
+    # Exploration de différentes pondérations LQR
+    print("=== LQR avec pondération plus agressive sur x ===")
+    Q2 = np.diag([-5.0, 0.5, 10.0, 2.0])
+    R2 = np.array([[0.5]])
+    K_oc2, _ = lqr(A_lat, B_lat, Q2, R2)
+    print(f"K_oc2 = {K_oc2}")
+    eigs_oc2 = la.eigvals(A_lat - B_lat @ K_oc2)
+    print(f"Valeurs propres : {np.round(eigs_oc2, 4)}")
+    plot_controller(K_oc2, label="LQR agressif", t_end=25)
+    return (K_oc2,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Le contrôle optimal LQR offre un **compromis automatique** entre performance et effort de contrôle :
+    - Augmenter les coefficients de $Q$ → convergence plus rapide, mais commandes plus fortes
+    - Augmenter $R$ → commandes plus douces, mais convergence plus lente
+    - Le LQR **garantit la stabilité** du système en boucle fermée (pour tout système contrôlable)
+    - Contrairement au placement de pôles, on n'a pas à choisir les pôles directement, mais des critères de performance plus intuitifs
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Validation
 
     Test the two control strategies (pole placement and optimal control) on the "true" (nonlinear) model with an animation. Check that both controllers achieve their goal; otherwise, go back to the drawing board and tweak the design parameters until they do!
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Question :** Tester les deux stratégies (placement de pôles et LQR) sur le modèle **non linéaire** réel. Vérifier que les deux contrôleurs atteignent leurs objectifs.
+
+    ### Démarche
+
+    On utilise `redstart_solve` avec une loi de commande en boucle fermée :
+    - La commande est $\phi(t) = -K\,\Delta s_{lat}(t)$ (on sature $\phi$ à $\pm\pi/2$)
+    - On fixe $f = Mg$ (seul $\phi$ est commandé)
+    - On part de $\theta(0) = 45°$, $x(0)=0$, vitesses nulles
+    """)
+    return
+
+
+@app.cell
+def _(K_pp, M, g, l, np, plt, redstart_solve):
+    def simulate_nonlinear(K, t_end=30, label=""):
+        """Simule le système non linéaire complet avec la loi de commande K sur phi."""
+        # Conditions initiales : état complet [x, vx, y, vy, theta, omega]
+        # theta(0) = 45 degrés = pi/4 rad
+        y0 = [0.0, 0.0, 10.0, 0.0, np.pi/4, 0.0]
+        t_span = [0.0, t_end]
+    
+        # L'équilibre de référence (on utilise y_e = y(t) pour ne pas contraindre y)
+        def f_phi_controller(t, state):
+            x, vx, y, vy, theta, omega = state
+            # Vecteur d'erreur latéral (par rapport à l'équilibre x=0, theta=0)
+            ds_lat = np.array([x, vx, theta, omega])
+            # Loi de commande
+            delta_phi = -(K @ ds_lat).item()
+            # Saturation de phi
+            phi = np.clip(delta_phi, -np.pi/2, np.pi/2)
+            f = M * g  # Force fixée à l'équilibre
+            return np.array([f, phi])
+    
+        sol = redstart_solve(t_span, y0, f_phi_controller)
+    
+        t_vals = np.linspace(0, t_end, 3000)
+        states = sol(t_vals)
+    
+        x_t     = states[0, :]
+        y_t     = states[2, :]
+        theta_t = states[4, :]
+    
+        # Recalculer phi
+        phi_t = np.array([
+            np.clip(-(K @ np.array([states[0,i], states[1,i], states[4,i], states[5,i]])).item(),
+                    -np.pi/2, np.pi/2)
+            for i in range(len(t_vals))
+        ])
+    
+        fig, axes = plt.subplots(2, 2, figsize=(14, 8))
+    
+        axes[0, 0].plot(t_vals, theta_t * 180/np.pi, 'r-', linewidth=2)
+        axes[0, 0].axhline(0, color='k', ls='--', alpha=0.5)
+        axes[0, 0].axhline(90, color='orange', ls=':', alpha=0.7, label='±90°')
+        axes[0, 0].axhline(-90, color='orange', ls=':', alpha=0.7)
+        axes[0, 0].set_title(r"$\theta(t)$ — Inclinaison (degrés)")
+        axes[0, 0].set_xlabel("t (s)"); axes[0, 0].legend(); axes[0, 0].grid(True)
+    
+        axes[0, 1].plot(t_vals, x_t, 'b-', linewidth=2)
+        axes[0, 1].axhline(0, color='k', ls='--', alpha=0.5)
+        axes[0, 1].set_title(r"$x(t)$ — Position latérale (m)")
+        axes[0, 1].set_xlabel("t (s)"); axes[0, 1].grid(True)
+    
+        axes[1, 0].plot(t_vals, phi_t * 180/np.pi, 'g-', linewidth=2)
+        axes[1, 0].axhline(90, color='r', ls='--', alpha=0.5, label='±90° (saturation)')
+        axes[1, 0].axhline(-90, color='r', ls='--', alpha=0.5)
+        axes[1, 0].set_title(r"$\phi(t)$ — Angle réacteur (degrés)")
+        axes[1, 0].set_xlabel("t (s)"); axes[1, 0].legend(); axes[1, 0].grid(True)
+    
+        axes[1, 1].plot(t_vals, y_t, 'm-', linewidth=2)
+        axes[1, 1].axhline(l/2, color='grey', ls='--', label=r'$y=\ell/2$ (sol)')
+        axes[1, 1].set_title(r"$y(t)$ — Hauteur (m)")
+        axes[1, 1].set_xlabel("t (s)"); axes[1, 1].legend(); axes[1, 1].grid(True)
+    
+        plt.suptitle(f"Validation non linéaire — {label}", fontsize=13, fontweight='bold')
+        plt.tight_layout()
+        plt.show()
+    
+        # Critères de performance
+        idx_20 = np.argmin(np.abs(t_vals - 20))
+        print(f"\n--- Résultats à t=20s ({label}) ---")
+        print(f"theta(20) = {theta_t[idx_20]*180/np.pi:.2f}° (objectif: ~0°)")
+        print(f"x(20)     = {x_t[idx_20]:.3f} m (objectif: ~0 m)")
+        print(f"max|theta| = {np.max(np.abs(theta_t))*180/np.pi:.1f}° (limite: 90°)")
+        print(f"max|phi|   = {np.max(np.abs(phi_t))*180/np.pi:.1f}° (limite: 90°)")
+
+    # Validation avec placement de pôles
+    print("=" * 60)
+    print("PLACEMENT DE PÔLES — Modèle non linéaire")
+    print("=" * 60)
+    simulate_nonlinear(K_pp, t_end=30, label="Placement de pôles")
+    return (simulate_nonlinear,)
+
+
+@app.cell
+def _(K_oc2, simulate_nonlinear):
+    # Validation avec LQR
+    print("=" * 60)
+    print("CONTRÔLE OPTIMAL LQR — Modèle non linéaire")
+    print("=" * 60)
+    simulate_nonlinear(K_oc2, t_end=30, label="LQR Optimal")
+    return
+
+
+@app.cell
+def _(A_lat, B_lat, K_manual, K_oc2, K_pp, la, np):
+
+    print("=" * 60)
+    print("RÉCAPITULATIF DES STRATÉGIES DE CONTRÔLE")
+    print("=" * 60)
+
+    strategies = [
+        ("Manuel",           K_manual,  A_lat - B_lat @ K_manual),
+        ("Placement pôles",  K_pp,      A_lat - B_lat @ K_pp),
+        ("LQR Optimal",      K_oc2,     A_lat - B_lat @ K_oc2),
+    ]
+
+    for name, K, A_cl in strategies:
+        eigs = la.eigvals(A_cl)
+        stable1 = np.all(np.real(eigs) < 0)
+        print(f"\n{name}:")
+        print(f"  K = {np.round(K, 4)}")
+        print(f"  Valeurs propres BF : {np.round(eigs, 3)}")
+        print(f"  Stable : {'✅' if stable1 else '❌'}")
+        t_conv = -1 / np.max(np.real(eigs[np.real(eigs) < 0])) * 5  # ~5 constantes de temps
+        print(f"  Temps de convergence estimé : ~{t_conv:.1f} s")
+    return
+
+
+@app.cell
+def _():
     return
 
 
