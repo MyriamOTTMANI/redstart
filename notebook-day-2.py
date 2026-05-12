@@ -1448,7 +1448,7 @@ def _(A, B, np):
         print("Le système COMPLET est CONTRÔLABLE")
     else:
         print(f"Non contrôlable (rang {rank_C} < {n})")
-    return
+    return (controllability_matrix,)
 
 
 @app.cell(hide_code=True)
@@ -1469,6 +1469,47 @@ def _(mo):
     - What are the new (reduced) matrices $A$ and $B$ for this reduced system?
 
     - Check the controllability of this new system.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On extrait les lignes et colonnes correspondant aux indices $\{0, 1, 4, 5\}$ de $A$ (états $x, v_x, \theta, \omega$) et la colonne $\Delta\phi$ (colonne 1 de $B$, puisque $\Delta f = 0$).
+    """)
+    return
+
+
+@app.cell
+def _(A, B, controllability_matrix, np):
+    # Indices : x=0, vx=1, theta=4, omega=5
+    idx = [0, 1, 4, 5]
+
+    A_lat = A[np.ix_(idx, idx)]
+    B_lat = B[idx, 1:2]   # colonne Delta_phi uniquement
+
+    print("A_lat =\n", A_lat)
+    print("\nB_lat =\n", B_lat)
+
+
+    C_lat = controllability_matrix(A_lat, B_lat)
+    print("\nC_lat =\n",C_lat)
+    rank_lat = np.linalg.matrix_rank(C_lat)
+    n_lat = A_lat.shape[0]
+
+    print(f"\nRang de C_lat : {rank_lat} / {n_lat}")
+    if rank_lat == n_lat:
+        print("Le système LATÉRAL RÉDUIT est CONTRÔLABLE")
+    else:
+        print("Non contrôlable")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Puisque le rang est égale à la dimension de l'espace n=4, on constate alors que le système réduit est contrôlable
     """)
     return
 
