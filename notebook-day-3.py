@@ -2751,8 +2751,28 @@ def _(mo):
     return
 
 
-@app.cell
-def _():
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    D'après Q23, $h^{(4)}$ est affine en $v$ :
+    $$
+    h^{(4)} = \alpha(\theta, \dot\theta, z, \dot{z}) + E(\theta, z)\, v
+    $$
+
+    où $E(\theta, z) \in \mathbb{R}^{2\times2}$ est inversible tant que $z \neq 0$.
+
+    $$E(\theta, z) = \begin{pmatrix} -\frac{1}{M} \sin\theta & -\frac{\ell \cos\theta}{6z} \\ \frac{\cos\theta}{M} & -\frac{\ell \sin\theta}{6z} \end{pmatrix}$$
+
+    Il suffit donc de choisir :
+    $$
+    \boxed{v = E(\theta, z)^{-1}\left(u - \alpha(\theta, \dot\theta, z, \dot{z})\right)}
+    $$
+
+    on obtient donc :
+    $$
+    h^{(4)} = u
+    $$
+    """)
     return
 
 
