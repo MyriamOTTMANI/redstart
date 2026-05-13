@@ -2254,9 +2254,38 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Le centre de masse de la fusée est en $(x, y)$. Le vecteur unitaire pointant vers le **haut** de la fusée (dans la direction de son axe) est :
+    $$
+    \vec{u}_{axe} = \begin{bmatrix} -\sin\theta \\ +\cos\theta \end{bmatrix}
+    $$
+
+    Le point situé à une distance $\ell/6$ **au-dessus** du centre de masse est :
+    $$
+    (x, y) + \frac{\ell}{6}\begin{bmatrix} -\sin\theta \\ +\cos\theta \end{bmatrix}
+    = \begin{bmatrix} x - (\ell/6)\sin\theta \\ y + (\ell/6)\cos\theta \end{bmatrix} = h
+    $$
+
+    **Conclusion géométrique :** $h$ est la position du point situé au **tiers supérieur** de la fusée (à $\ell/6$ au-dessus du centre, donc à $\ell/3$ du sommet). C'est le **centre de masse du tiers supérieur** de la fusée.
+
+    Ce point a une propriété mathématique remarquable : ses dérivées successives s'expriment simplement en fonction des commandes, ce qui permet la linéarisation exacte.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 First and Second-Order Derivatives
 
     Compute $\dot{h}$ as a function of $\dot{x}$, $\dot{y}$, $\theta$ and $\dot{\theta}$ (and constants) and then $\ddot{h}$ as a function of $\theta$ and $z$ (and constants) when the auxiliary system is plugged in the booster.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+ 
     """)
     return
 
