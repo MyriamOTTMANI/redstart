@@ -2398,7 +2398,7 @@ def _(mo):
     Et la dynamique angulaire du système auxiliaire donne :
 
     $$
-    \ddot{\theta} = \frac{M\ell v_2}{6Jz} = \frac{v_2} {z}
+    \ddot{\theta} = \frac{M\ell v_2}{6Jz} \frac{\ell} {2} = \frac{v_2} {z}
     $$
 
 
@@ -2712,8 +2712,8 @@ def _(M, l, np):
   
         s, c = np.sin(theta), np.cos(theta)
         return np.array([
-            -(dz/M)*s - (z*dtheta/M)*c,
-             (dz/M)*c - (z*dtheta/M)*s
+            (dz/M)*s + (z*dtheta/M)*c,
+             -(dz/M)*c + (z*dtheta/M)*s
         ])
 
     def h4_alpha_E(theta, dtheta, z, dz, M=M, l=l):
@@ -2722,14 +2722,14 @@ def _(M, l, np):
 
         # Matrice E (coeff de v)
         E = np.array([
-            [-s/M,      -l*c/(6*z)],
-            [ c/M,      -l*s/(6*z)]
+            [s/M,      c/M],
+            [-c/M,      s/M]
         ])
 
         # Terme autonome alpha
         alpha = np.array([
-            2*(dz/M)*dtheta*(-c) - (z/M)*dtheta**2*(-s),
-            2*(dz/M)*dtheta*(-s) - (z/M)*dtheta**2*( c)
+            2*(dz/M)*dtheta*(-c) + (z/M)*dtheta**2*(-s),
+            2*(dz/M)*dtheta*(-s) + (z/M)*dtheta**2*( c)
         ])
 
         return alpha, E
