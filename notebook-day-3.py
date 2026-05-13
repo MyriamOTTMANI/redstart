@@ -2194,7 +2194,7 @@ def _(mo):
     Let
     $$
     R(\alpha) =
-    \begin{bmatrix} +\cos \alpha & -\sin \alpha \\ +\sin \alpha & -\cos \alpha
+    \begin{bmatrix} +\cos \alpha & -\sin \alpha \\ +\sin \alpha & \cos \alpha
     \end{bmatrix}
     $$
 
@@ -2398,7 +2398,7 @@ def _(mo):
     Et la dynamique angulaire du système auxiliaire donne :
 
     $$
-    \ddot{\theta} = \frac{M\ell v_2}{6Jz} = \frac{M\ell v_2}{6 \cdot \frac{M\ell^2}{12} \cdot z} = \frac{2v_2}{\ell z}
+    \ddot{\theta} = \frac{M\ell v_2}{6Jz} = \frac{v_2} {z}
     $$
 
 
@@ -2480,7 +2480,7 @@ def _(mo):
     =
     -
     \frac{z}{M}
-    (-\sin\theta)
+    (\sin\theta)
     \]
 
      Calcul analogue pour \(\ddot h_y\)
@@ -2493,7 +2493,7 @@ def _(mo):
     \[
     \ddot h_y
     =
-    \frac{z}{M}\cos\theta
+    \frac{-z}{M}\cos\theta
     -
     g
     \]
@@ -2508,8 +2508,8 @@ def _(mo):
     =
     \frac{z}{M}
     \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
+    \sin\theta \\
+    -\cos\theta
     \end{bmatrix}
     -
     \begin{bmatrix}
@@ -2554,8 +2554,8 @@ def _(mo):
     =
     \frac{z}{M}
     \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
+    \sin\theta \\
+    -\cos\theta
     \end{bmatrix}
     -
     \begin{bmatrix}
@@ -2622,14 +2622,14 @@ def _(mo):
     \[
     \frac{d}{dt}
     \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
+    \sin\theta \\
+    -\cos\theta
     \end{bmatrix}
     =
     \dot\theta
     \begin{bmatrix}
-    -\cos\theta \\
-    -\sin\theta
+    \cos\theta \\
+    \sin\theta
     \end{bmatrix}
     \]
 
@@ -2641,14 +2641,14 @@ def _(mo):
     =
     \frac{\dot z}{M}
     \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
+    \sin\theta \\
+    -\cos\theta
     \end{bmatrix}
     +
     \frac{z\dot\theta}{M}
     \begin{bmatrix}
-    -\cos\theta \\
-    -\sin\theta
+    \cos\theta \\
+    \sin\theta
     \end{bmatrix}
     }
     \]
@@ -2674,16 +2674,16 @@ def _(mo):
     \underbrace{
     \frac{v_1}{M}
     \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
+    \sin\theta \\
+    -\cos\theta
     \end{bmatrix}
     }_{\text{terme en } v_1}
     +
     \underbrace{
-    \frac{\ell}{6z}
+    \frac{1}{M}
     \begin{bmatrix}
-    -\cos\theta \\
-    -\sin\theta
+    \cos\theta \\
+    \sin\theta
     \end{bmatrix}
     v_2
     }_{\text{terme en } v_2}
@@ -2734,7 +2734,7 @@ def _(M, l, np):
 
         return alpha, E
 
-    return
+    return (h4_alpha_E,)
 
 
 @app.cell(hide_code=True)
@@ -2776,6 +2776,26 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, g, h4_alpha_E, l, np):
+    def exact_linearization_v(theta, dtheta, z, dz, u, M=M, g=g, l=l):
+        """
+        Calcule v tel que h^(4) = u,
+        en inversant la relation h^(4) = alpha + E @ v.
+        """
+        alpha, E = h4_alpha_E(theta, dtheta, z, dz, M, l)
+
+        det_E = np.linalg.det(E)
+        if abs(det_E) < 1e-10:
+            raise ValueError(f"Matrice E singulière ! det(E) = {det_E:.2e}")
+
+        # v = E^{-1} (u - alpha)
+        v = np.linalg.solve(E, u - alpha)
+        return v
+
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -2783,6 +2803,11 @@ def _(mo):
 
     Implement a function `Tr` of `x, dx, y, dy, theta, dtheta, z, dz` that returns `h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y`.
     """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
