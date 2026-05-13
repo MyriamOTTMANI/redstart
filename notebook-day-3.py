@@ -2285,8 +2285,78 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
- 
+    On considère le point de sortie $h$, décalé par rapport au centre de gravité pour faciliter le contrôle :
+
+    $$
+    h = \begin{bmatrix}
+    x - \frac{\ell}{6}\sin\theta \\
+    y + \frac{\ell}{6}\cos\theta
+    \end{bmatrix}
+    $$
+
+
+
+    ### 1. Première dérivée $\dot h$
+
+    En dérivant chaque composante par rapport au temps (en utilisant la règle de la chaîne pour $\theta$), on obtient le vecteur vitesse de $h$ :
+
+    $$
+    \dot h = \begin{bmatrix}
+    \dot x - \frac{\ell}{6}\cos\theta \cdot \dot\theta \\
+    \dot y - \frac{\ell}{6}\sin\theta \cdot \dot\theta
+    \end{bmatrix}
+    $$
+
+    **Variables d'influence :**
+    *   Vitesses de translation : $\dot x, \dot y$
+    *   État angulaire : $\theta, \dot\theta$
+
+
+
+    ### 2. Deuxième dérivée $\ddot h$
+
+    En dérivant une seconde fois, on obtient l'accélération. Attention à bien dériver le produit $(\cos\theta \cdot \dot\theta)$ qui génère deux termes :
+
+    $$
+    \ddot h = \begin{bmatrix}
+    \ddot x + \frac{\ell}{6}\sin(\theta)\,\dot{\theta}^2 - \frac{\ell}{6}\cos(\theta)\,\ddot{\theta} \\
+    \ddot y - \frac{\ell}{6}\cos(\theta)\,\dot{\theta}^2 - \frac{\ell}{6}\sin(\theta)\,\ddot{\theta}
+    \end{bmatrix}
+    $$
+
+    **Variables d'influence :**
+    *   Accélérations : $\ddot x, \ddot y, \ddot\theta$
+    *   Vitesse angulaire : $\dot\theta$
+    *   Angle : $\theta$
     """)
+    return
+
+
+@app.cell
+def _(np):
+    def rocket_h_dynamics(state, l):
+
+        x, vx, y, vy, theta, omega , ax, ay, alpha = state
+
+        h = np.array([
+            x - (l/6) * np.sin(theta),
+            y + (l/6) * np.cos(theta)
+        ])
+    
+        # 2. Calcul de h_dot (Vitesse)
+        h_dot = np.array([
+            vx - (l/6) * np.cos(theta) * omega,
+            vy - (l/6) * np.sin(theta) * omega
+        ])
+    
+        # 3. Calcul de h_ddot (Accélération)
+        h_ddot = np.array([
+            ax + (l/6) * np.sin(theta) * (omega**2) - (l/6) * np.cos(theta) * alpha,
+            ay - (l/6) * np.cos(theta) * (omega**2) - (l/6) * np.sin(theta) * alpha
+        ])
+    
+        return h, h_dot, h_ddot
+
     return
 
 
